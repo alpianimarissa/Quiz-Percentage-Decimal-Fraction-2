@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambridge Stage 7: 30-Question Percentages Practice Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        cambridge: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-cambridge-600 selection:text-white min-h-screen flex flex-col">
+
+    <!-- Top Navigation & Status Bar -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-cambridge-600 text-white p-2 rounded-xl shadow-sm">
+                    <i class="fa-solid fa-pen-to-square text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-sm sm:text-base leading-tight">Cambridge Stage 7 Quiz</h1>
+                    <p class="text-xs text-slate-500 font-medium">30 Applied Essay Questions • Auto-Saved</p>
+                </div>
+            </div>
+
+            <!-- Live Score & Auto-save Indicator -->
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <span id="save-indicator" class="hidden sm:inline-flex items-center text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    <i class="fa-solid fa-cloud-check mr-1.5"></i> Progress Saved
+                </span>
+                <div class="bg-slate-900 text-white px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <span>Score: <span id="score-display" class="text-amber-300">0</span> / 30</span>
+                </div>
+                <button onclick="confirmReset()" title="Reset All Progress" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-200 h-1.5">
+            <div id="progress-bar" class="bg-cambridge-600 h-1.5 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left/Main Area: Active Question Card -->
+        <div class="lg:col-span-8 space-y-6">
+            <!-- Mode Toggle (Single View vs All Questions) -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-600">
+                    <span class="px-2.5 py-1 rounded-lg bg-cambridge-50 text-cambridge-700" id="topic-filter-badge">All Topics (30 Questions)</span>
+                </div>
+                <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                    <button onclick="setViewMode('single')" id="btn-mode-single" class="px-3 py-1.5 rounded-lg bg-white text-cambridge-600 shadow-sm transition">
+                        <i class="fa-solid fa-square mr-1"></i> Focus Mode (1-by-1)
+                    </button>
+                    <button onclick="setViewMode('all')" id="btn-mode-all" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                        <i class="fa-solid fa-list mr-1"></i> View All (30)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question Display Container -->
+            <div id="quiz-container" class="space-y-6">
+                <!-- Rendered by JS -->
+            </div>
+
+            <!-- Bottom Navigation Controls (for Single Mode) -->
+            <div id="single-nav-controls" class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <button onclick="navigateQuestion(-1)" id="prev-btn" class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Previous
+                </button>
+                <span class="text-sm font-bold text-slate-700">Question <span id="current-q-num">1</span> of 30</span>
+                <button onclick="navigateQuestion(1)" id="next-btn" class="px-4 py-2.5 rounded-xl bg-cambridge-600 text-white text-sm font-semibold hover:bg-cambridge-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2">
+                    Next <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Question Navigator Grid -->
+        <aside class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-slate-900 text-sm uppercase tracking-wider">Question Navigator</h2>
+                <span class="text-xs font-semibold text-slate-500"><span id="answered-count">0</span>/30 Checked</span>
+            </div>
+            
+            <!-- Legend -->
+            <div class="flex flex-wrap gap-3 text-[11px] font-medium text-slate-600 mb-4 pb-3 border-b border-slate-100">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Correct</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Incorrect</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Draft</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-200"></span> Unanswered</span>
+            </div>
+
+            <!-- 30 Number Buttons -->
+            <div id="nav-grid" class="grid grid-cols-6 gap-2">
+                <!-- Buttons 1-30 injected by JS -->
+            </div>
+
+            <!-- Summary Card -->
+            <div class="mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs text-slate-600">
+                <div class="flex justify-between">
+                    <span>Correct Answers:</span>
+                    <span id="stat-correct" class="font-bold text-emerald-600">0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Incorrect Answers:</span>
+                    <span id="stat-wrong" class="font-bold text-rose-600">0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Accuracy Rate:</span>
+                    <span id="stat-accuracy" class="font-bold text-cambridge-600">0%</span>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+        // =========================================================================
+        // 30 BRAND-NEW CAMBRIDGE STAGE 7 ESSAY/SHORT-ANSWER QUESTIONS (ALL ENGLISH)
+        // =========================================================================
+        const questionsData = [
+            // --- TOPIC 1: FDP EQUIVALENCE & CONVERSION (Q1 - Q6) ---
+            {
+                id: 1,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Core",
+                question: "Convert 68% into a fraction in its simplest form.",
+                unit: "",
+                acceptedAnswers: ["17/25"],
+                steps: [
+                    "<strong>Step 1:</strong> Write 68% as a fraction out of 100: 68/100.",
+                    "<strong>Step 2:</strong> Divide both numerator and denominator by their highest common factor (4): 68 &divide; 4 = 17, and 100 &divide; 4 = 25.",
+                    "<strong>Final Answer:</strong> 17/25"
+                ]
+            },
+            {
+                id: 2,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Core",
+                question: "Express 7/20 as a percentage.",
+                unit: "%",
+                acceptedAnswers: ["35", "35%"],
+                steps: [
+                    "<strong>Step 1:</strong> Find an equivalent fraction with a denominator of 100 by multiplying top and bottom by 5.",
+                    "<strong>Step 2:</strong> (7 &times; 5) / (20 &times; 5) = 35/100 = 35%.",
+                    "<strong>Final Answer:</strong> 35%"
+                ]
+            },
+            {
+                id: 3,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Core",
+                question: "Write 0.625 as a percentage.",
+                unit: "%",
+                acceptedAnswers: ["62.5", "62.5%"],
+                steps: [
+                    "<strong>Step 1:</strong> Multiply the decimal by 100 (move the decimal point two places to the right).",
+                    "<strong>Step 2:</strong> 0.625 &times; 100 = 62.5%.",
+                    "<strong>Final Answer:</strong> 62.5%"
+                ]
+            },
+            {
+                id: 4,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Intermediate",
+                question: "Convert 11/25 into a decimal and a percentage. Write your answer separated by a comma.",
+                unit: "",
+                acceptedAnswers: ["0.44, 44%", "0.44, 44", "0.44 and 44%", "0.44 44%"],
+                steps: [
+                    "<strong>Step 1 (Percentage):</strong> Multiply numerator and denominator by 4: 11/25 = 44/100 = 44%.",
+                    "<strong>Step 2 (Decimal):</strong> 44 &divide; 100 = 0.44.",
+                    "<strong>Final Answer:</strong> 0.44, 44%"
+                ]
+            },
+            {
+                id: 5,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Intermediate",
+                question: "Arrange the following values in ascending order (smallest to largest): 0.42, 2/5, 45%. Write them separated by commas.",
+                unit: "",
+                acceptedAnswers: ["2/5, 0.42, 45%", "2/5, 0.42, 45", "40%, 42%, 45%"],
+                steps: [
+                    "<strong>Step 1:</strong> Convert all values to percentages: 0.42 = 42%, 2/5 = 40/100 = 40%, and 45% = 45%.",
+                    "<strong>Step 2:</strong> Order from smallest to largest: 40% &lt; 42% &lt; 45%.",
+                    "<strong>Final Answer:</strong> 2/5, 0.42, 45%"
+                ]
+            },
+            {
+                id: 6,
+                category: "FDP Equivalence & Conversion",
+                difficulty: "Intermediate",
+                question: "A recipe requires 3/8 of a kilogram of flour. What percentage of a kilogram is this?",
+                unit: "%",
+                acceptedAnswers: ["37.5", "37.5%"],
+                steps: [
+                    "<strong>Step 1:</strong> Recall that 1/8 = 0.125 = 12.5%.",
+                    "<strong>Step 2:</strong> Multiply by 3: 3 &times; 12.5% = 37.5%.",
+                    "<strong>Final Answer:</strong> 37.5%"
+                ]
+            },
+
+            // --- TOPIC 2: SPECIAL PERCENTAGES (<1% AND >100%) (Q7 - Q11) ---
+            {
+                id: 7,
+                category: "Special Percentages (<1% and >100%)",
+                difficulty: "Core",
+                question: "Write 0.6% as a decimal.",
+                unit: "",
+                acceptedAnswers: ["0.006"],
+                steps: [
+                    "<strong>Step 1:</strong> Divide 0.6 by 100 by moving the decimal point two places to the left.",
+                    "<strong>Step 2:</strong> 0.6 &divide; 100 = 0.006.",
+                    "<strong>Final Answer:</strong> 0.006"
+                ]
+            },
+            {
+                id: 8,
+                category: "Special Percentages (<1% and >100%)",
+                difficulty: "Intermediate",
+                question: "Express 0.25% as a fraction in its simplest form.",
+                unit: "",
+                acceptedAnswers: ["1/400"],
+                steps: [
+                    "<strong>Step 1:</strong> Write as a fraction out of 100: 0.25 / 100.",
+                    "<strong>Step 2:</strong> Multiply top and bottom by 4 to make the numerator a whole number: (0.25 &times; 4) / (100 &times; 4) = 1/400.",
+                    "<strong>Final Answer:</strong> 1/400"
+                ]
+            },
+            {
+                id: 9,
+                category: "Special Percentages (<1% and >100%)",
+                difficulty: "Core",
+                question: "Convert 235% into a mixed number in its simplest form.",
+                unit: "",
+                acceptedAnswers: ["2 7/20"],
+                steps: [
+                    "<strong>Step 1:</strong> 235% = 235/100 = 2 and 35/100.",
+                    "<strong>Step 2:</strong> Simplify 35/100 by dividing numerator and denominator by 5: 35 &divide; 5 = 7, 100 &divide; 5 = 20.",
+                    "<strong>Final Answer:</strong> 2 7/20"
+                ]
+            },
+            {
+                id: 10,
+                category: "Special Percentages (<1% and >100%)",
+                difficulty: "Intermediate",
+                question: "A rare mineral makes up 0.008 of a rock sample's mass. What percentage of the rock is this mineral?",
+                unit: "%",
+                acceptedAnswers: ["0.8", "0.8%"],
+                steps: [
+                    "<strong>Step 1:</strong> Multiply the decimal proportion by 100 to convert to a percentage.",
+                    "<strong>Step 2:</strong> 0.008 &times; 100 = 0.8%.",
+                    "<strong>Final Answer:</strong> 0.8%"
+                ]
+            },
+            {
+                id: 11,
+                category: "Special Percentages (<1% and >100%)",
+                difficulty: "Challenge",
+                question: "A company's profit this year is 180% of last year's profit. If last year's profit was $4,500, calculate this year's profit in dollars.",
+                unit: "$",
+                acceptedAnswers: ["8100", "$8100", "8,100", "$8,100"],
+                steps: [
+                    "<strong>Step 1:</strong> Break 180% into 100% + 80%.",
+                    "<strong>Step 2:</strong> 100% of $4,500 = $4,500. 10% = $450, so 80% = 8 &times; $450 = $3,600.",
+                    "<strong>Step 3:</strong> Total = $4,500 + $3,600 = $8,100.",
+                    "<strong>Final Answer:</strong> $8100"
+                ]
+            },
+
+            // --- TOPIC 3: PERCENTAGES OF QUANTITIES (Q12 - Q17) ---
+            {
+                id: 12,
+                category: "Percentages of Quantities",
+                difficulty: "Core",
+                question: "Calculate 45% of 320 grams.",
+                unit: "g",
+                acceptedAnswers: ["144", "144g", "144 g", "144 grams"],
+                steps: [
+                    "<strong>Step 1:</strong> Find 10% of 320 g = 32 g. Therefore, 40% = 4 &times; 32 = 128 g.",
+                    "<strong>Step 2:</strong> Find 5% of 320 g = half of 32 g = 16 g.",
+                    "<strong>Step 3:</strong> Add them together: 128 + 16 = 144 g.",
+                    "<strong>Final Answer:</strong> 144 g"
+                ]
+            },
+            {
+                id: 13,
+                category: "Percentages of Quantities",
+                difficulty: "Intermediate",
+                question: "Find 17.5% of $400.",
+                unit: "$",
+                acceptedAnswers: ["70", "$70", "70.00", "$70.00"],
+                steps: [
+                    "<strong>Step 1:</strong> 10% of $400 = $40.",
+                    "<strong>Step 2:</strong> 5% of $400 = $20.",
+                    "<strong>Step 3:</strong> 2.5% of $400 = half of 5% = $10.",
+                    "<strong>Step 4:</strong> 17.5% = $40 + $20 + $10 = $70.",
+                    "<strong>Final Answer:</strong> $70"
+                ]
+            },
+            {
+                id: 14,
+                category: "Percentages of Quantities",
+                difficulty: "Intermediate",
+                question: "A library has 1,200 books. 65% of the books are fiction, and the rest are non-fiction. How many non-fiction books are in the library?",
+                unit: "books",
+                acceptedAnswers: ["420", "420 books"],
+                steps: [
+                    "<strong>Step 1:</strong> Find the percentage of non-fiction books: 100% &minus; 65% = 35%.",
+                    "<strong>Step 2:</strong> Calculate 35% of 1,200: 10% = 120, so 30% = 360 and 5% = 60.",
+                    "<strong>Step 3:</strong> 360 + 60 = 420 non-fiction books.",
+                    "<strong>Final Answer:</strong> 420"
+                ]
+            },
+            {
+                id: 15,
+                category: "Percentages of Quantities",
+                difficulty: "Intermediate",
+                question: "Express 750 meters as a percentage of 3 kilometers.",
+                unit: "%",
+                acceptedAnswers: ["25", "25%"],
+                steps: [
+                    "<strong>Step 1:</strong> Convert 3 kilometers into meters so both quantities share the same unit: 3 km = 3,000 m.",
+                    "<strong>Step 2:</strong> Write as a fraction: 750 / 3000.",
+                    "<strong>Step 3:</strong> Simplify: 750 &divide; 750 = 1, and 3000 &divide; 750 = 4. So 1/4 = 25%.",
+                    "<strong>Final Answer:</strong> 25%"
+                ]
+            },
+            {
+                id: 16,
+                category: "Percentages of Quantities",
+                difficulty: "Intermediate",
+                question: "What percentage of 2 hours is 18 minutes?",
+                unit: "%",
+                acceptedAnswers: ["15", "15%"],
+                steps: [
+                    "<strong>Step 1:</strong> Convert 2 hours into minutes: 2 &times; 60 = 120 minutes.",
+                    "<strong>Step 2:</strong> Write as a fraction and multiply by 100%: (18 / 120) &times; 100%.",
+                    "<strong>Step 3:</strong> Simplify 18/120 by dividing by 6 &rarr; 3/20 = 15/100 = 15%.",
+                    "<strong>Final Answer:</strong> 15%"
+                ]
+            },
+            {
+                id: 17,
+                category: "Percentages of Quantities",
+                difficulty: "Challenge",
+                question: "Calculate 0.5% of 6,400.",
+                unit: "",
+                acceptedAnswers: ["32"],
+                steps: [
+                    "<strong>Step 1:</strong> First find 1% of 6,400 by dividing by 100: 6,400 &divide; 100 = 64.",
+                    "<strong>Step 2:</strong> Since 0.5% is half of 1%, divide 64 by 2: 64 &divide; 2 = 32.",
+                    "<strong>Final Answer:</strong> 32"
+                ]
+            },
+
+            // --- TOPIC 4: FINANCIAL CONTEXTS - DISCOUNTS, TAX & INTEREST (Q18 - Q22) ---
+            {
+                id: 18,
+                category: "Financial Contexts",
+                difficulty: "Core",
+                question: "A bicycle is priced at $250. In a weekend sale, there is a 16% discount. What is the new sale price of the bicycle?",
+                unit: "$",
+                acceptedAnswers: ["210", "$210", "210.00", "$210.00"],
+                steps: [
+                    "<strong>Step 1:</strong> Find 16% of $250. 10% = $25, 5% = $12.50, 1% = $2.50. Total discount = $25 + $12.50 + $2.50 = $40.",
+                    "<strong>Step 2:</strong> Subtract the discount from the original price: $250 &minus; $40 = $210.",
+                    "<strong>Final Answer:</strong> $210"
+                ]
+            },
+            {
+                id: 19,
+                category: "Financial Contexts",
+                difficulty: "Intermediate",
+                question: "A restaurant bill is $85 before tax. A 12% service tax is added to the bill. What is the total bill including tax?",
+                unit: "$",
+                acceptedAnswers: ["95.2", "95.20", "$95.2", "$95.20"],
+                steps: [
+                    "<strong>Step 1:</strong> Calculate 12% of $85: 10% = $8.50, and 2% = 2 &times; $0.85 = $1.70.",
+                    "<strong>Step 2:</strong> Total tax = $8.50 + $1.70 = $10.20.",
+                    "<strong>Step 3:</strong> Total bill = $85 + $10.20 = $95.20.",
+                    "<strong>Final Answer:</strong> $95.20"
+                ]
+            },
+            {
+                id: 20,
+                category: "Financial Contexts",
+                difficulty: "Intermediate",
+                question: "Liam buys a vintage watch for $120 and later sells it for $156. Calculate his percentage profit.",
+                unit: "%",
+                acceptedAnswers: ["30", "30%"],
+                steps: [
+                    "<strong>Step 1:</strong> Calculate the actual profit: $156 &minus; $120 = $36.",
+                    "<strong>Step 2:</strong> Divide profit by original cost price and multiply by 100%: ($36 / $120) &times; 100%.",
+                    "<strong>Step 3:</strong> 36/120 = 3/10 = 30%.",
+                    "<strong>Final Answer:</strong> 30%"
+                ]
+            },
+            {
+                id: 21,
+                category: "Financial Contexts",
+                difficulty: "Challenge",
+                question: "A laptop costs $600. Its price is first increased by 10%, and then the new price is reduced by 10% in a clearance sale. What is the final price of the laptop?",
+                unit: "$",
+                acceptedAnswers: ["594", "$594", "594.00", "$594.00"],
+                steps: [
+                    "<strong>Step 1 (10% Increase):</strong> 10% of $600 = $60. New price = $600 + $60 = $660.",
+                    "<strong>Step 2 (10% Decrease):</strong> 10% of the new price ($660) = $66.",
+                    "<strong>Step 3 (Final Price):</strong> $660 &minus; $66 = $594. (Notice it is lower than $600!)",
+                    "<strong>Final Answer:</strong> $594"
+                ]
+            },
+            {
+                id: 22,
+                category: "Financial Contexts",
+                difficulty: "Challenge",
+                question: "Maya deposits $500 into a bank account that pays 4% simple interest per year. How much total money will she have in her account after 3 years?",
+                unit: "$",
+                acceptedAnswers: ["560", "$560", "560.00", "$560.00"],
+                steps: [
+                    "<strong>Step 1:</strong> Calculate 1 year's interest: 4% of $500 = 4 &times; $5 = $20.",
+                    "<strong>Step 2:</strong> Multiply by 3 years: 3 &times; $20 = $60 total interest.",
+                    "<strong>Step 3:</strong> Add interest to principal deposit: $500 + $60 = $560.",
+                    "<strong>Final Answer:</strong> $560"
+                ]
+            },
+
+            // --- TOPIC 5: HANDLING DATA & COMPARING QUANTITIES (Q23 - Q26) ---
+            {
+                id: 23,
+                category: "Handling Data & Comparison",
+                difficulty: "Intermediate",
+                question: "In School A, 36 out of 45 students play a musical instrument. In School B, 48 out of 64 students play a musical instrument. Which school has a higher percentage of students playing an instrument?",
+                unit: "",
+                acceptedAnswers: ["school a", "a"],
+                steps: [
+                    "<strong>Step 1 (School A):</strong> 36/45 = 4/5 = 80%.",
+                    "<strong>Step 2 (School B):</strong> 48/64 = 3/4 = 75%.",
+                    "<strong>Step 3 (Compare):</strong> 80% &gt; 75%, so School A has a higher percentage.",
+                    "<strong>Final Answer:</strong> School A"
+                ]
+            },
+            {
+                id: 24,
+                category: "Handling Data & Comparison",
+                difficulty: "Core",
+                question: "In a pie chart showing favorite sports of 200 students, the sector for Football represents 38% and Basketball represents 27%. How many students chose other sports?",
+                unit: "students",
+                acceptedAnswers: ["70", "70 students"],
+                steps: [
+                    "<strong>Step 1:</strong> Find the percentage for other sports: 100% &minus; (38% + 27%) = 100% &minus; 65% = 35%.",
+                    "<strong>Step 2:</strong> Calculate 35% of 200: 35 &times; 2 = 70 students.",
+                    "<strong>Final Answer:</strong> 70"
+                ]
+            },
+            {
+                id: 25,
+                category: "Handling Data & Comparison",
+                difficulty: "Intermediate",
+                question: "A waffle diagram has 100 squares. 28 squares are shaded blue, 17 are shaded green, and the rest are unshaded. What percentage of the diagram is unshaded?",
+                unit: "%",
+                acceptedAnswers: ["55", "55%"],
+                steps: [
+                    "<strong>Step 1:</strong> Total shaded squares = 28 + 17 = 45 squares (45%).",
+                    "<strong>Step 2:</strong> Unshaded squares = 100 &minus; 45 = 55 squares.",
+                    "<strong>Step 3:</strong> Since the grid has 100 squares, 55 out of 100 is 55%.",
+                    "<strong>Final Answer:</strong> 55%"
+                ]
+            },
+            {
+                id: 26,
+                category: "Handling Data & Comparison",
+                difficulty: "Challenge",
+                question: "In a survey of 250 people, 64% said they prefer tea over coffee. How many more people prefer tea than coffee?",
+                unit: "people",
+                acceptedAnswers: ["70", "70 people"],
+                steps: [
+                    "<strong>Step 1:</strong> Percentage preferring coffee = 100% &minus; 64% = 36%.",
+                    "<strong>Step 2:</strong> Percentage difference = 64% &minus; 36% = 28%.",
+                    "<strong>Step 3:</strong> Calculate 28% of 250: 10% = 25, 20% = 50, 8% = 8 &times; 2.5 = 20. Total = 50 + 20 = 70 people.",
+                    "<strong>Final Answer:</strong> 70"
+                ]
+            },
+
+            // --- TOPIC 6: PROBABILITY & GEOMETRY APPLICATIONS (Q27 - Q30) ---
+            {
+                id: 27,
+                category: "Probability & Geometry",
+                difficulty: "Core",
+                question: "A spinner has 8 equal sections numbered 1 to 8. What is the percentage probability of spinning a multiple of 4?",
+                unit: "%",
+                acceptedAnswers: ["25", "25%"],
+                steps: [
+                    "<strong>Step 1:</strong> Multiples of 4 between 1 and 8 are 4 and 8 (2 favorable outcomes).",
+                    "<strong>Step 2:</strong> Probability as a fraction = 2/8 = 1/4.",
+                    "<strong>Step 3:</strong> Convert 1/4 to a percentage = 25%.",
+                    "<strong>Final Answer:</strong> 25%"
+                ]
+            },
+            {
+                id: 28,
+                category: "Probability & Geometry",
+                difficulty: "Intermediate",
+                question: "A bag contains 14 red counters, 11 blue counters, and 25 yellow counters. One counter is picked at random. What is the percentage probability that it is NOT blue?",
+                unit: "%",
+                acceptedAnswers: ["78", "78%"],
+                steps: [
+                    "<strong>Step 1:</strong> Total counters = 14 + 11 + 25 = 50.",
+                    "<strong>Step 2:</strong> Number of counters that are NOT blue = 14 + 25 = 39.",
+                    "<strong>Step 3:</strong> Convert 39/50 to a percentage: (39 &times; 2) / (50 &times; 2) = 78/100 = 78%.",
+                    "<strong>Final Answer:</strong> 78%"
+                ]
+            },
+            {
+                id: 29,
+                category: "Probability & Geometry",
+                difficulty: "Intermediate",
+                question: "A rectangle measures 12 cm by 5 cm. A square of side 3 cm is cut out from inside the rectangle. What percentage of the rectangle's original area was cut out?",
+                unit: "%",
+                acceptedAnswers: ["15", "15%"],
+                steps: [
+                    "<strong>Step 1:</strong> Area of the rectangle = 12 cm &times; 5 cm = 60 cm&sup2;.",
+                    "<strong>Step 2:</strong> Area of the cut-out square = 3 cm &times; 3 cm = 9 cm&sup2;.",
+                    "<strong>Step 3:</strong> Percentage cut out = (9 / 60) &times; 100% = (3 / 20) &times; 100% = 15%.",
+                    "<strong>Final Answer:</strong> 15%"
+                ]
+            },
+            {
+                id: 30,
+                category: "Probability & Geometry",
+                difficulty: "Challenge",
+                question: "A square has a side length of 10 cm. If each side length is increased by 20%, what is the percentage increase in the AREA of the square?",
+                unit: "%",
+                acceptedAnswers: ["44", "44%"],
+                steps: [
+                    "<strong>Step 1:</strong> Original area = 10 cm &times; 10 cm = 100 cm&sup2;.",
+                    "<strong>Step 2:</strong> New side length after 20% increase = 10 cm + (20% of 10 cm) = 12 cm.",
+                    "<strong>Step 3:</strong> New area = 12 cm &times; 12 cm = 144 cm&sup2;.",
+                    "<strong>Step 4:</strong> Increase in area = 144 &minus; 100 = 44 cm&sup2; out of 100 cm&sup2; = 44%.",
+                    "<strong>Final Answer:</strong> 44%"
+                ]
+            }
+        ];
+
+        // =========================================================================
+        // STATE MANAGEMENT WITH LOCALSTORAGE (OFFLINE & RELOAD PERSISTENCE)
+        // =========================================================================
+        const STORAGE_KEY = 'cambridge_stage7_pct_quiz_v1';
+
+        let appState = {
+            currentIndex: 0,
+            viewMode: 'single', // 'single' or 'all'
+            answers: {} // { [questionId]: { userInput: string, status: 'correct' | 'incorrect' | 'draft' } }
+        };
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    appState = { ...appState, ...parsed };
+                }
+            } catch (e) {
+                console.warn("Could not load state from localStorage:", e);
+            }
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                showSavePulse();
+            } catch (e) {
+                console.warn("Could not save state to localStorage:", e);
+            }
+        }
+
+        function showSavePulse() {
+            const el = document.getElementById('save-indicator');
+            if (!el) return;
+            el.classList.add('ring-2', 'ring-emerald-400');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400'), 500);
+        }
+
+        // =========================================================================
+        // ANSWER NORMALIZATION & VALIDATION LOGIC
+        // =========================================================================
+        function normalizeAnswer(str) {
+            if (!str) return "";
+            return str
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, ' ')         // Collapse multiple spaces
+                .replace(/\s*\/\s*/g, '/')    // Normalize fraction slashes "17 / 25" -> "17/25"
+                .replace(/\s*,\s*/g, ', ');   // Normalize commas
+        }
+
+        function checkQuestionAnswer(qId) {
+            const q = questionsData.find(item => item.id === qId);
+            const inputEl = document.getElementById(`input-q-${qId}`);
+            if (!q || !inputEl) return;
+
+            const rawVal = inputEl.value;
+            const normVal = normalizeAnswer(rawVal);
+
+            if (!normVal) {
+                inputEl.focus();
+                inputEl.classList.add('ring-2', 'ring-amber-400');
+                setTimeout(() => inputEl.classList.remove('ring-2', 'ring-amber-400'), 800);
+                return;
+            }
+
+            // Compare normalized user input against acceptedAnswers
+            const isCorrect = q.acceptedAnswers.some(ans => normalizeAnswer(ans) === normVal);
+
+            appState.answers[qId] = {
+                userInput: rawVal,
+                status: isCorrect ? 'correct' : 'incorrect'
+            };
+
+            saveState();
+            renderAllUI();
+        }
+
+        function handleDraftInput(qId, value) {
+            const existing = appState.answers[qId];
+            // Save draft immediately on every keystroke so reload never loses typed text
+            appState.answers[qId] = {
+                userInput: value,
+                status: existing && existing.status !== 'draft' ? existing.status : (value.trim() ? 'draft' : undefined)
+            };
+            if (!value.trim() && (!existing || existing.status === 'draft')) {
+                delete appState.answers[qId];
+            }
+            saveState();
+            updateSidebarStatsOnly();
+        }
+
+        function resetSingleQuestion(qId) {
+            delete appState.answers[qId];
+            saveState();
+            renderAllUI();
+        }
+
+        function confirmReset() {
+            if (confirm("Are you sure you want to clear all your answers and reset your score to 0?")) {
+                appState.answers = {};
+                appState.currentIndex = 0;
+                saveState();
+                renderAllUI();
+            }
+        }
+
+        // =========================================================================
+        // RENDERING & NAVIGATION
+        // =========================================================================
+        function setViewMode(mode) {
+            appState.viewMode = mode;
+            saveState();
+            renderAllUI();
+        }
+
+        function jumpToQuestion(index) {
+            appState.currentIndex = index;
+            saveState();
+            if (appState.viewMode === 'single') {
+                renderAllUI();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                renderAllUI();
+                const targetCard = document.getElementById(`card-q-${questionsData[index].id}`);
+                if (targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+
+        function navigateQuestion(delta) {
+            const nextIdx = appState.currentIndex + delta;
+            if (nextIdx >= 0 && nextIdx < questionsData.length) {
+                appState.currentIndex = nextIdx;
+                saveState();
+                renderAllUI();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function buildQuestionCardHTML(q) {
+            const record = appState.answers[q.id] || {};
+            const userInput = record.userInput || "";
+            const status = record.status; // 'correct', 'incorrect', 'draft', or undefined
+
+            let borderClass = "border-slate-200";
+            let statusBanner = "";
+            let solutionBlock = "";
+
+            if (status === 'correct') {
+                borderClass = "border-emerald-400 ring-1 ring-emerald-400/30";
+                statusBanner = `
+                    <div class="mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5 text-emerald-800 font-bold text-sm">
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                            <span>Correct! Well done.</span>
+                        </div>
+                        <button onclick="resetSingleQuestion(${q.id})" class="text-xs font-semibold text-emerald-700 hover:underline">Try Again</button>
+                    </div>
+                `;
+            } else if (status === 'incorrect') {
+                borderClass = "border-rose-400 ring-1 ring-rose-400/30";
+                statusBanner = `
+                    <div class="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5 text-rose-800 font-bold text-sm">
+                            <i class="fa-solid fa-circle-xmark text-rose-600 text-lg"></i>
+                            <span>Incorrect. Review the worked solution below!</span>
+                        </div>
+                        <button onclick="resetSingleQuestion(${q.id})" class="text-xs font-semibold text-rose-700 hover:underline">Retry Question</button>
+                    </div>
+                `;
+            }
+
+            // Show detailed step-by-step worked solution immediately after checking
+            if (status === 'correct' || status === 'incorrect') {
+                solutionBlock = `
+                    <div class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                <i class="fa-solid fa-list-check mr-1 text-cambridge-600"></i> Detailed Worked Solution
+                            </span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-cambridge-100 text-cambridge-800">
+                                Key Answer: ${q.acceptedAnswers[0]}
+                            </span>
+                        </div>
+                        <div class="space-y-2">
+                            ${q.steps.map(step => `
+                                <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                                    ${step}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const diffBadgeClass = q.difficulty === 'Challenge' 
+                ? 'bg-rose-100 text-rose-700' 
+                : (q.difficulty === 'Intermediate' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600');
+
+            return `
+                <div id="card-q-${q.id}" class="bg-white p-6 rounded-2xl border ${borderClass} shadow-sm transition-all">
+                    <!-- Header Metadata -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded-lg">Question ${q.id}</span>
+                            <span class="text-xs font-semibold text-cambridge-600">${q.category}</span>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${diffBadgeClass}">
+                            ${q.difficulty}
+                        </span>
+                    </div>
+
+                    <!-- Question Text -->
+                    <p class="text-slate-900 font-semibold text-base sm:text-lg leading-relaxed mb-5">
+                        ${q.question}
+                    </p>
+
+                    <!-- Essay / Short Answer Input Form -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-grow">
+                            <input type="text" 
+                                id="input-q-${q.id}" 
+                                value="${userInput.replace(/"/g, '&quot;')}"
+                                oninput="handleDraftInput(${q.id}, this.value)"
+                                onkeydown="if(event.key === 'Enter') checkQuestionAnswer(${q.id})"
+                                placeholder="Type your answer here..."
+                                autocomplete="off"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white text-slate-900 font-semibold text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-cambridge-500 focus:border-cambridge-500 transition"
+                            >
+                            ${q.unit ? `<span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">Unit: ${q.unit}</span>` : ''}
+                        </div>
+                        <button onclick="checkQuestionAnswer(${q.id})" 
+                            class="px-6 py-3 rounded-xl bg-cambridge-600 hover:bg-cambridge-700 text-white font-bold text-sm shadow-sm transition flex items-center justify-center gap-2 shrink-0">
+                            <i class="fa-solid fa-check"></i> Check Answer
+                        </button>
+                    </div>
+
+                    ${statusBanner}
+                    ${solutionBlock}
+                </div>
+            `;
+        }
+
+        function updateSidebarStatsOnly() {
+            let correctCount = 0;
+            let wrongCount = 0;
+
+            questionsData.forEach(q => {
+                const st = appState.answers[q.id]?.status;
+                if (st === 'correct') correctCount++;
+                if (st === 'incorrect') wrongCount++;
+            });
+
+            const checkedTotal = correctCount + wrongCount;
+            const accuracy = checkedTotal > 0 ? Math.round((correctCount / checkedTotal) * 100) : 0;
+
+            document.getElementById('score-display').textContent = correctCount;
+            document.getElementById('answered-count').textContent = checkedTotal;
+            document.getElementById('stat-correct').textContent = correctCount;
+            document.getElementById('stat-wrong').textContent = wrongCount;
+            document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
+            document.getElementById('progress-bar').style.width = `${(checkedTotal / questionsData.length) * 100}%`;
+
+            // Render 30 Navigator Grid Buttons
+            const navGrid = document.getElementById('nav-grid');
+            navGrid.innerHTML = questionsData.map((q, idx) => {
+                const st = appState.answers[q.id]?.status;
+                const isActive = appState.viewMode === 'single' && appState.currentIndex === idx;
+
+                let btnStyle = "bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent";
+                if (st === 'correct') btnStyle = "bg-emerald-500 text-white hover:bg-emerald-600 border-emerald-600";
+                else if (st === 'incorrect') btnStyle = "bg-rose-500 text-white hover:bg-rose-600 border-rose-600";
+                else if (st === 'draft') btnStyle = "bg-amber-100 text-amber-900 border-amber-400";
+
+                const activeRing = isActive ? "ring-2 ring-offset-2 ring-cambridge-600 font-extrabold scale-105" : "font-semibold";
+
+                return `
+                    <button onclick="jumpToQuestion(${idx})" 
+                        class="h-9 rounded-lg border text-xs transition flex items-center justify-center ${btnStyle} ${activeRing}">
+                        ${q.id}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderAllUI() {
+            const container = document.getElementById('quiz-container');
+            const singleNav = document.getElementById('single-nav-controls');
+            const btnSingle = document.getElementById('btn-mode-single');
+            const btnAll = document.getElementById('btn-mode-all');
+
+            if (appState.viewMode === 'single') {
+                btnSingle.className = "px-3 py-1.5 rounded-lg bg-white text-cambridge-600 shadow-sm transition";
+                btnAll.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+                singleNav.classList.remove('hidden');
+
+                const currentQ = questionsData[appState.currentIndex];
+                container.innerHTML = buildQuestionCardHTML(currentQ);
+
+                document.getElementById('current-q-num').textContent = currentQ.id;
+                document.getElementById('prev-btn').disabled = appState.currentIndex === 0;
+                document.getElementById('next-btn').disabled = appState.currentIndex === questionsData.length - 1;
+            } else {
+                btnAll.className = "px-3 py-1.5 rounded-lg bg-white text-cambridge-600 shadow-sm transition";
+                btnSingle.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+                singleNav.classList.add('hidden');
+
+                container.innerHTML = questionsData.map(q => buildQuestionCardHTML(q)).join('');
+            }
+
+            updateSidebarStatsOnly();
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            renderAllUI();
+        });
+    </script>
+</body>
+</html>
